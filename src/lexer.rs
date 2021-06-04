@@ -13,7 +13,7 @@ macro_rules! located_error {
 use std::iter::Iterator;
 use peekmore::{PeekMore, PeekMoreIterator};
 
-use super::{Token, Primitive, Complex, Real, ToLocated, Located, Location};
+use super::{Token, Primitive, Complex, Real, Located, Location, LexerError, ToLocated};
 
 pub struct Lexer<CharIter: Iterator<Item = char>> {
     char_stream: PeekMoreIterator<CharIter>,
@@ -709,14 +709,7 @@ fn tokenize(text: &str) -> Result<Vec<Token>> {
         .collect())
 }
 
-#[derive(PartialEq, Debug, Clone)]
-pub enum LexerError {
-    UnexpectedBegin,
-    UnexpectedEnd,
-    UnrecognizedToken,
-}
 
-impl ToLocated for LexerError {}
 
 
 #[derive(Debug, Copy, Clone)]
