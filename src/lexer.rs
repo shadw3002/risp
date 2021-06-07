@@ -1,15 +1,3 @@
-macro_rules! error {
-    ($arg:expr) => {
-        Err($arg);
-    };
-}
-
-macro_rules! located_error {
-    ($arg:expr, $loc:expr) => {
-        Err($arg.with_locate($loc));
-    };
-}
-
 use std::iter::Iterator;
 use peekmore::{PeekMore, PeekMoreIterator};
 
@@ -24,12 +12,12 @@ pub struct Lexer<CharIter: Iterator<Item = char>> {
 type Result<T> = std::result::Result<T, Located<LexerError>>;
 
 impl<CharIter: Iterator<Item = char>> Iterator for Lexer<CharIter> {
-    type Item = Result<Located<Token>>;
+    type Item = Located<std::result::Result<Token, LexerError>>;
     fn next(&mut self) -> Option<Self::Item> {
         match self.get_next_token() {
             Ok(None) => None,
-            Ok(Some(token)) => Some(Ok(token)),
-            Err(e) => Some(Err(e)),
+            Ok(Some(Located{data, location})) => Some(Ok(data).with_location(location)),
+            Err(Located{data, location}) => Some(Err(data).with_location(location)),
         }
     }
 }
@@ -120,7 +108,7 @@ impl<CharIter: Iterator<Item = char>> Lexer<CharIter> {
                 '|' => {self.reset(); self.get_quoted_identifier()?},
                 ch if is_identifier_initial(ch) => {self.reset(); self.get_normal_identifier()?},
                 _ => return located_error!(LexerError::UnexpectedBegin, location),
-            }.with_locate(location)))
+            }.with_location(location)))
         }
 
         Ok(None)
@@ -703,10 +691,10 @@ fn move_location(ch: char, location: &mut Location) {
 fn tokenize(text: &str) -> Result<Vec<Token>> {
     let mut iter = text.chars().peekable();
     let c = Lexer::new(&mut iter);
-    Ok(c.collect::<Result<Vec<_>>>()?
-        .into_iter()
-        .map(|l| l.extract())
-        .collect())
+    c.map(|a| {
+        let (res, location) = (a.data, a.location);
+        res.map_err(|e| e.with_location(location))
+    }).collect::<Result<Vec<_>>>()
 }
 
 

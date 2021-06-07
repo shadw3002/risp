@@ -1,4 +1,16 @@
-use super::ToLocated;
+use super::{ToLocated, Token};
+
+macro_rules! error {
+    ($arg:expr) => {
+        Err($arg);
+    };
+}
+
+macro_rules! located_error {
+    ($arg:expr, $loc:expr) => {
+        Err($arg.with_location($loc));
+    };
+}
 
 #[derive(PartialEq, Debug, Clone)]
 pub enum LexerError {
@@ -11,8 +23,12 @@ impl ToLocated for LexerError {}
 
 
 #[derive(PartialEq, Debug, Clone)]
-pub enum ParserError {
-
+pub enum ProcessorError {
+    LexerError(LexerError),
+    UnmatchedParentheses,
+    UnexpectedEnd,
+    UnexpectedToken(Token),
 }
 
-impl ToLocated for ParserError {}
+impl ToLocated for ProcessorError {}
+
