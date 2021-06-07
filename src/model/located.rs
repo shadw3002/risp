@@ -3,7 +3,7 @@ use std::ops::{Deref, DerefMut};
 #[derive(Debug, Copy, Clone)]
 pub struct Located<T> {
     pub data: T,
-    pub location: Option<Location>,
+    pub location: Location,
 }
 
 #[derive(Debug, Copy, Clone)]
@@ -13,26 +13,18 @@ pub struct Location {
 }
 
 pub trait ToLocated {
-    fn with_locate(self, location: Location) -> Located<Self>
+    fn with_location(self, location: Location) -> Located<Self>
     where
         Self: Sized,
     {
         Located::<Self> {
             data: self,
-            location: Some(location),
-        }
-    }
-
-    fn without_locate(self) -> Located<Self>
-    where
-        Self: Sized,
-    {
-        Located::<Self> {
-            data: self,
-            location: None,
+            location: location,
         }
     }
 }
+
+impl<T, E> ToLocated for std::result::Result<T, E> {}
 
 impl<T> Located<T> {
     pub fn extract(self) -> T {
