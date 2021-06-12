@@ -53,18 +53,18 @@ impl<TokenIter: Iterator<Item = TResult>> Processor<TokenIter> {
         return Ok(Some(match token {
             Token::Primitive(p) => {self.advance(); Datum::Primitive(p)},
             Token::Identifier(i) => {self.advance(); Datum::Symbol(i)},
-            Token::LeftParen => self.get_pair()?,
+            Token::LeftParen => self.get_pair()?.data,
             Token::RightParen => return located_error!(ProcessorError::UnmatchedParentheses, location),
-            Token::VecConsIntro => self.get_vector()?,
+            Token::VecConsIntro => self.get_vector()?.data,
             _ => panic!(""),
         }.with_location(location)))
     }
 
-    fn get_vector(&mut self) -> Result<Datum> {
+    fn get_vector(&mut self) -> Result<Located<Datum>> {
         panic!("TODO")
     }
 
-    fn get_pair(&mut self) -> Result<Datum> {
+    fn get_pair(&mut self) -> Result<Located<Datum>> {
         let left_paren = self.advance();
         debug_assert_eq!(left_paren.clone().map(|l| l.data), Some(Ok(Token::LeftParen)));
         let pair_location = left_paren.unwrap().location;
@@ -90,7 +90,7 @@ impl<TokenIter: Iterator<Item = TResult>> Processor<TokenIter> {
                         encounter_period = true;
                         continue;
                     },
-                    Token::RightParen => {self.advance(); break Ok(Datum::Pair(head))}, // TODO
+                    Token::RightParen => {self.advance(); break Ok(Datum::Pair(head).with_location(pair_location))}, // TODO
                     _ => {
                         self.reset();
                         let Located{data: element, location} = self.get_next_datum()?
@@ -109,7 +109,7 @@ impl<TokenIter: Iterator<Item = TResult>> Processor<TokenIter> {
                                     *cdr = element.with_location(location);
                                     let right_paren = self.advance();
                                     debug_assert_eq!(right_paren.clone().map(|l| l.data), Some(Ok(Token::RightParen)));
-                                    break Ok(Datum::Pair(head));
+                                    break Ok(Datum::Pair(head).with_location(pair_location));
                                 }
 
                                 assert_eq!((*cdr).data, Datum::Pair(Box::new(DatumPair::Empty)));
