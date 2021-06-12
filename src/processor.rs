@@ -98,23 +98,32 @@ impl<TokenIter: Iterator<Item = TResult>> Processor<TokenIter> {
                         
                         match tail {
                             DatumPair::Empty => {
-                                head = Box::new(DatumPair::Some(element, Datum::Pair(Box::new(DatumPair::Empty))));
+                                head = Box::new(DatumPair::Some(
+                                    element.with_location(location), 
+                                    Datum::Pair(Box::new(DatumPair::Empty)).with_location(location)
+                                ));
                                 tail = head.as_mut();
                             },
                             DatumPair::Some(car, cdr) => {
                                 if encounter_period {
-                                    *cdr = element;
+                                    *cdr = element.with_location(location);
                                     let right_paren = self.advance();
                                     debug_assert_eq!(right_paren.clone().map(|l| l.data), Some(Ok(Token::RightParen)));
                                     break Ok(Datum::Pair(head));
                                 }
 
-                                assert_eq!(*cdr, Datum::Pair(Box::new(DatumPair::Empty)));
+                                assert_eq!((*cdr).data, Datum::Pair(Box::new(DatumPair::Empty)));
 
                                 let new_tail = 
-                                    DatumPair::Some(element, Datum::Pair(Box::new(DatumPair::Empty)));
-                                *cdr = Datum::Pair(Box::new(new_tail));
-                                tail = if let Datum::Pair(p) = cdr { p } else { panic!() }
+                                    DatumPair::Some(
+                                        element.with_location(location), 
+                                        Datum::Pair(Box::new(DatumPair::Empty)).with_location(location)
+                                    );
+                                *cdr = Datum::Pair(Box::new(new_tail)).with_location(location);
+                                tail = if let Located{
+                                    data: Datum::Pair(p), 
+                                    location
+                                } = cdr { p } else { panic!() }
                             }
                         }
 

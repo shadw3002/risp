@@ -1,6 +1,6 @@
-use super::{Primitive, ToLocated, GenericPair};
+use super::{Primitive, ToLocated, GenericPair, Located};
 
-pub type DatumPair = GenericPair<Datum>;
+pub type DatumPair = GenericPair<Located<Datum>>;
 
 #[derive(PartialEq, Debug, Clone)]
 pub enum Datum {
@@ -11,7 +11,7 @@ pub enum Datum {
 
     // compound datum
     Pair(Box<DatumPair>), // List
-    Vector(Vec<Datum>),
+    Vector(Vec<Located<Datum>>),
     
 }
 

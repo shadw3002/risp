@@ -1,12 +1,12 @@
 use std::ops::{Deref, DerefMut};
 
-#[derive(Debug, Copy, Clone)]
+#[derive(PartialEq, Debug, Copy, Clone)]
 pub struct Located<T> {
     pub data: T,
     pub location: Location,
 }
 
-#[derive(Debug, Copy, Clone)]
+#[derive(PartialEq, Debug, Copy, Clone)]
 pub struct Location {
     pub row: u32,
     pub col: u32,
