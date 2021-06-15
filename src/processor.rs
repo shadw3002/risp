@@ -38,6 +38,10 @@ impl<TokenIter: Iterator<Item = TResult>> Processor<TokenIter> {
         res
     }
 
+    fn peek_without_location(&mut self) -> Option<std::result::Result<Token, LexerError>> {
+        self.peek().map(|l| l.data)
+    }
+
     fn reset(&mut self) {
         self.tokens.reset_cursor();
     }
@@ -51,12 +55,17 @@ impl<TokenIter: Iterator<Item = TResult>> Processor<TokenIter> {
         self.reset();
 
         return Ok(Some(match token {
+            // simple datum
             Token::Primitive(p) => {self.advance(); Datum::Primitive(p)},
-            Token::Identifier(i) => {self.advance(); Datum::Symbol(i)},
-            Token::LeftParen => self.get_pair()?.data,
             Token::ByteVecConsIntro => self.get_bytevector()?.data,
+            Token::Identifier(i) => {self.advance(); Datum::Symbol(i)},
+
+            // compound datum
+            Token::LeftParen => self.get_pair()?.data,
+            Token::VecConsIntro => self.get_vector()?.data,
+            // TODO abbreviation
+
             Token::RightParen => return located_error!(ProcessorError::UnmatchedParentheses, location),
-            Token::VecConsIntro => self.get_bytevector()?.data,
             _ => return located_error!(ProcessorError::UnexpectedToken(token), location),
         }.with_location(location)))
     }
@@ -81,6 +90,23 @@ impl<TokenIter: Iterator<Item = TResult>> Processor<TokenIter> {
                 },
             }
         }.with_location(pair_location))
+    }
+
+    fn get_vector(&mut self) -> Result<Located<Datum>> {
+        let leftveccon = self.advance();
+        debug_assert_eq!(leftveccon.clone().map(|l| l.data), Some(Ok(Token::VecConsIntro)));
+        let pair_location = leftveccon.unwrap().location;
+
+        let mut datums = vec![];
+        while self.peek_without_location() != Some(Ok(Token::RightParen)) {
+            self.reset();
+            match self.get_next_datum()? {
+                None => return located_error!(ProcessorError::UnexpectedEnd, panic!("TODO")),
+                Some(datum) => datums.push(datum),
+            }
+        }
+
+        Ok(Datum::Vector(datums).with_location(pair_location))
     }
 
     fn get_pair(&mut self) -> Result<Located<Datum>> {
