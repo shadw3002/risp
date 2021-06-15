@@ -1,4 +1,4 @@
-use super::{Primitive, ToLocated, GenericPair, Located};
+use super::{Primitive, ToLocated, GenericPair, Located, Real};
 
 pub type DatumPair = GenericPair<Located<Datum>>;
 
@@ -7,7 +7,7 @@ pub enum Datum {
     // simple datum
     Primitive(Primitive),
     Symbol(String),
-    ByteVector(),
+    ByteVector(Vec<u8>),
 
     // compound datum
     Pair(Box<DatumPair>), // List

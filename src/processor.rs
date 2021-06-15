@@ -1,4 +1,4 @@
-use super::{Token, LexerError, Located, ProcessorError, Datum, ToLocated, DatumPair};
+use super::{Token, LexerError, Located, ProcessorError, Datum, ToLocated, DatumPair, Primitive, Complex, Real};
 
 use peekmore::{PeekMore, PeekMoreIterator};
 
@@ -54,14 +54,33 @@ impl<TokenIter: Iterator<Item = TResult>> Processor<TokenIter> {
             Token::Primitive(p) => {self.advance(); Datum::Primitive(p)},
             Token::Identifier(i) => {self.advance(); Datum::Symbol(i)},
             Token::LeftParen => self.get_pair()?.data,
+            Token::ByteVecConsIntro => self.get_bytevector()?.data,
             Token::RightParen => return located_error!(ProcessorError::UnmatchedParentheses, location),
-            Token::VecConsIntro => self.get_vector()?.data,
-            _ => panic!(""),
+            Token::VecConsIntro => self.get_bytevector()?.data,
+            _ => return located_error!(ProcessorError::UnexpectedToken(token), location),
         }.with_location(location)))
     }
 
-    fn get_vector(&mut self) -> Result<Located<Datum>> {
-        panic!("TODO")
+    fn get_bytevector(&mut self) -> Result<Located<Datum>> {
+        let leftveccon = self.advance();
+        debug_assert_eq!(leftveccon.clone().map(|l| l.data), Some(Ok(Token::VecConsIntro)));
+        let pair_location = leftveccon.unwrap().location;
+
+        let bytes = vec![];
+        return Ok(loop {
+            match self.advance() {
+                None => return located_error!(ProcessorError::UnexpectedEnd, panic!("TODO")),
+                Some(Located{data, location}) => match 
+                    data.map_err(|e| ProcessorError::LexerError(e).with_location(location))? 
+                {
+                    Token::RightParen => break Datum::ByteVector(bytes),
+                    Token::Primitive(Primitive::Complex(Complex::Real(Real::Integer(i)))) => {
+                        
+                    },
+                    token => return located_error!(ProcessorError::UnexpectedToken(token), location),
+                },
+            }
+        }.with_location(pair_location))
     }
 
     fn get_pair(&mut self) -> Result<Located<Datum>> {
