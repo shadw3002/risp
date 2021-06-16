@@ -75,7 +75,7 @@ impl<TokenIter: Iterator<Item = TResult>> Processor<TokenIter> {
         debug_assert_eq!(leftveccon.clone().map(|l| l.data), Some(Ok(Token::VecConsIntro)));
         let pair_location = leftveccon.unwrap().location;
 
-        let bytes = vec![];
+        let mut bytes = vec![];
         return Ok(loop {
             match self.advance() {
                 None => return located_error!(ProcessorError::UnexpectedEnd, panic!("TODO")),
@@ -84,7 +84,13 @@ impl<TokenIter: Iterator<Item = TResult>> Processor<TokenIter> {
                 {
                     Token::RightParen => break Datum::ByteVector(bytes),
                     Token::Primitive(Primitive::Complex(Complex::Real(Real::Integer(i)))) => {
-                        
+                        match i {
+                            0..=255 => bytes.push(i as u8),
+                            i => return located_error!(
+                                ProcessorError::UnexpectedToken(Token::Primitive(Primitive::Complex(Complex::Real(Real::Integer(i))))),
+                                location
+                            ),
+                        }
                     },
                     token => return located_error!(ProcessorError::UnexpectedToken(token), location),
                 },
