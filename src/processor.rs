@@ -63,11 +63,34 @@ impl<TokenIter: Iterator<Item = TResult>> Processor<TokenIter> {
             // compound datum
             Token::LeftParen => self.get_pair()?.data,
             Token::VecConsIntro => self.get_vector()?.data,
-            // TODO abbreviation
+            
+            // abbreviation
+            Token::Quote => self.get_transform(token, "quote")?.data,
+            Token::Quasiquote => self.get_transform(token, "quasiquote")?.data,
+            Token::Unquote => self.get_transform(token, "unquote")?.data,
+            Token::UnquoteSplicing => self.get_transform(token, "unquote-splicing")?.data,
 
             Token::RightParen => return located_error!(ProcessorError::UnmatchedParentheses, location),
             _ => return located_error!(ProcessorError::UnexpectedToken(token), location),
         }.with_location(location)))
+    }
+
+    fn get_transform(&mut self, token: Token, symbol: &str) -> Result<Located<Datum>> {
+        let start = self.advance();
+        debug_assert_eq!(start.clone().map(|l| l.data), Some(Ok(token)));
+        let start_location = start.unwrap().location;
+
+        let inner = self.get_next_datum()?;
+        match inner {
+            None => located_error!(ProcessorError::UnexpectedEnd, start_location),
+            Some(datum) => Ok(Datum::Pair(Box::new(DatumPair::Some(
+                Datum::Symbol(symbol.to_string()).with_location(start_location),
+                Datum::Pair(Box::new(DatumPair::Some(
+                    datum.clone(),
+                    Datum::Pair(Box::new(DatumPair::Empty)).with_location(datum.location),
+                ))).with_location(datum.location)
+            ))).with_location(start_location)),
+        }
     }
 
     fn get_bytevector(&mut self) -> Result<Located<Datum>> {
